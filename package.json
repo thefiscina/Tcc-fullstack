@@ -1,0 +1,61 @@
+{
+  "name": "Bairrista",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "android": "cd android && gradlew clean && cd .. && npx react-native run-android",
+    "restart": "del node_modules && npm install &&  cd android && gradlew clean && cd .. && npx react-native start --reset-cache",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "test": "jest",
+    "lint": "eslint .",
+    "build": "cd android && gradlew clean &&  .\\gradlew assembleRelease && cd app\\build\\outputs\\apk\\release && explorer .",
+    "commit": "git add . && git commit -m'acertos' && git push"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.15.8",
+    "@react-native-community/slider": "^3.0.3",
+    "@react-native-community/toolbar-android": "0.1.0-rc.2",
+    "axios": "^0.19.2",
+    "md5": "^2.3.0",
+    "moment": "^2.24.0",
+    "react": "17.0.1",
+    "react-native": "0.64.2",
+    "react-native-camera": "^4.1.1",
+    "react-native-gesture-handler": "^1.5.3",
+    "react-native-masked-text": "^1.13.0",
+    "react-native-permissions": "^3.0.5",
+    "react-native-qrcode-scanner": "^1.5.3",
+    "react-native-reanimated": "^1.7.0",
+    "react-native-screens": "^2.2.0",
+    "react-native-share": "^7.0.2",
+    "react-native-svg": "^12.1.1",
+    "react-native-svg-transformer": "^0.14.3",
+    "react-native-uuid": "^1.4.9",
+    "react-native-vector-icons": "^6.7.0",
+    "react-native-view-shot": "^3.1.2",
+    "react-navigation": "^4.0.10",
+    "react-navigation-drawer": "^2.3.3",
+    "react-navigation-stack": "^1.10.3",
+    "react-navigation-tabs": "^2.6.2",
+    "react-redux": "^7.1.3",
+    "redux": "^4.0.1",
+    "redux-saga": "^0.16.2",
+    "redux-thunk": "^2.3.0",
+    "reduxsauce": "^1.0.0",
+    "styled-components": "^5.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.8",
+    "@babel/runtime": "^7.14.8",
+    "@react-native-community/eslint-config": "^3.0.0",
+    "babel-jest": "^27.0.6",
+    "eslint": "^7.31.0",
+    "jest": "^27.0.6",
+    "metro-react-native-babel-preset": "^0.66.2",
+    "react-test-renderer": "17.0.1"
+  },
+  "jest": {
+    "preset": "react-native"
+  }
+}
