@@ -188,7 +188,7 @@ const RetiradaScreen = ({ navigation, isFocused }) => {
     }
 
     function logOutSys() {
-        const keys = ['@BPF:token', '@BPF:user']
+        const keys = ['@BRR:token', '@BRR:user']
         AsyncStorage.multiRemove(keys);
         dispatch(logout('LOGGOUT'));
         dispatch(appLoaded(true));

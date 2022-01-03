@@ -104,7 +104,7 @@ const StackNavigation_ = (authenticaded) => createStackNavigator(
 
     },
     {
-        initialRouteName: authenticaded ? 'Principal' : 'Login'
+        initialRouteName: authenticaded ? 'Principal' : 'Principal'
     },
     {
         navigationOptions: ({ navigation }) => {

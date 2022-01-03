@@ -1,162 +1,82 @@
 //import liraries
 import React, { useEffect, useState } from 'react';
 import {
-    Container,
-    ContainerHeader,
-    Content,
-    Header,
-    ItemHeader,
-    TextHeader,
-    TextValue,
-    ItemValueHeader,
-    ContainerIcon,
-    ContainerButtonsHeader,
-    ButtonHeader,
-    TextButtonHeader,
-    ContainerView,
-    ContainerTabs,
-    TabsSelect,
-    Tabs,
-    TextTab,
-    TitleContainer,
-    ContainerList,
-    RowList,
-    ItemRow,
-    IconRow,
-    InfoRow,
-    NameTextRow,
-    DateTextRow,
-    ValueRow,
-    ValueTextRow,
-    BorderSelected
+    Container, Header, ItemHeader, MapView
 } from './styles';
-import { connect, useDispatch, useSelector } from 'react-redux';
-import ViewIcon from '../../assets/icons/view.svg';
-import UserIcon from '../../assets/icons/user2.svg';
-import SaqueIcon from '../../assets/icons/user.svg';
-import EntradaIcon from '../../assets/icons/user2.svg';
-import CalendarIcon from '../../assets/icons/calendar.svg';
-import { ActivityIndicator, Alert, FlatList, LogBox, RefreshControl } from 'react-native';
-import { convertMoney } from '../../../util';
-import { colors } from '../../styles';
-import { appLoaded, authenticaded, logout, setEstabelecimento } from '../../store/actions';
+import { connect, useDispatch } from 'react-redux';
+import { ActivityIndicator, Alert, Dimensions, PermissionsAndroid, Platform, View } from 'react-native';
+import { appLoaded, logout } from '../../store/actions';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GET } from '../../service';
-import moment from 'moment';
-import ModalDataScreen from '../../components/modalResult';
-
+import Geolocation from 'react-native-geolocation-service';
+import MapMarkers from '../../components/Map/index';
 // create a component
 const HomeScreen = ({ navigation, isFocused }) => {
 
-    const [arrayTransacoes, setArrayTransacoes] = useState([]);
-    const [tabSelected, setTabSelected] = useState(1);
-    const [seeMoney, setSeeMoney] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [loadingValue, setLoadingValue] = useState(false);
-
-    const [estabelecimento, setEstabelecimento] = useState({});
-    const [modalData, setModalData] = useState(false);
-
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const { width, height } = Dimensions.get("window");
+
+    const ASPECT_RATIO = width / height;
+    let LATITUDE_DELTA = 0.1;
+    let LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
+    const [region, setRegion] = useState({
+        latitude: -20.301318,
+        longitude: -40.396402,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA
+    });
+    const [regionUser, setRegionUser] = useState({
+        latitude: -20.301318,
+        longitude: -40.396402,
+        latitudeDelta: LATITUDE_DELTA,
+        longitudeDelta: LONGITUDE_DELTA
+    });
+    const [isMapReady, setIsMapReady] = useState(false);
+    const [location, setLatLong] = useState(null);
+    const [listServices, setListServices] = useState([
+        {
+            latitude: -20.300493,
+            longitude: -40.398236,
+            icon: 'briefcase-check', ///  orçamento aceito
+            color: '#16C72E'
+        },
+        {
+            latitude: -20.300111,
+            longitude: -40.397722,
+            icon: 'briefcase-remove', // orçamento recusado
+            color: '#E83A30'
+        },
+        {
+            latitude: -20.300423,
+            longitude: -40.397110,
+            icon: 'briefcase', // sem interação
+            color: '#16A9C7'
+        },
+        {
+            latitude: -20.301409,
+            longitude: -40.396203,
+            icon: 'briefcase-clock', /// aguardando orçamento
+            color: '#EECA66'
+        },
+
+        {
+            latitude: -20.299507,
+            longitude: -40.397990,
+            icon: 'briefcase-account', /// orçamento em andamento
+            color: '#6C16C7'
+        },
+    ]);
 
     const dispatch = useDispatch();
 
+
+
     function init() {
-        getEstabelecimento();
-        getLasWeek();
+        getLocation();
     }
 
-    function getLasWeek() {
-        const startOfMonth = moment().subtract(1, 'weeks').startOf('isoWeek').format('YYYY-MM-DDTHH:mm:ss');
-        const endOfMonth = moment().format('YYYY-MM-DDTHH:mm:ss');
-        getTransacao(startOfMonth, endOfMonth)
-    }
-
-    function getLastMonth() {
-        const startOfMonth = moment().subtract(1, 'months').startOf('month').format('YYYY-MM-DDTHH:mm:ss');
-        const endOfMonth = moment().subtract(1, 'months').endOf('month').format('YYYY-MM-DDTHH:mm:ss');
-        getTransacao(startOfMonth, endOfMonth)
-    }
-
-    function getByDate(date_ini) {
-        const startOfMonth = moment(date_ini).startOf('month').format('YYYY-MM-DDTHH:mm:ss');
-        const endOfMonth = moment(date_ini).endOf('month').format('YYYY-MM-DDTHH:mm:ss');
-        getTransacao(startOfMonth, endOfMonth)
-    }
-
-    async function getEstabelecimento() {
-        try {
-
-            setLoadingValue(true)
-            var response = await GET(`Estabelecimento`).then(async (response) => {
-                setLoadingValue(false);
-                await AsyncStorage.setItem('@BPF:estabelecimento', JSON.stringify(response.data));
-                setEstabelecimento(response.data);
-            }).catch((err) => {
-                setLoadingValue(false);
-                if (err.response) {
-                    console.log(err.response.data); // => the response payload 
-                }
-                if (err.response.status == 401) {
-                    logOutSys();
-                } else {
-                    Alert.alert('Erro', err.response.data.message, [
-                        {
-                            text: 'OK',
-                        },
-                    ]);
-                }
-            });
-        } catch (error) {
-            console.log(error)
-            setLoadingValue(false);
-            Alert.alert('Erro', 'Erro ao tentar obter dados', [
-                {
-                    text: 'OK',
-                },
-            ]);
-        }
-    }
-
-    async function getTransacao(data_ini, data_fim) {
-        try {
-            setLoading(true);
-            var response = await GET(`Estabelecimento/Operacoes?dataIni=${data_ini}&dataFim=${data_fim}`).then(async (response) => {
-                setLoading(false);
-                setArrayTransacoes(response.data);
-                setIsRefreshing(false);
-
-            }).catch((err) => {
-                setIsRefreshing(false);
-                setLoading(false);
-                if (err.response) {
-                    console.log(err.response.data); // => the response payload 
-                }
-
-                if (err.response.status == 401) {
-                    logOutSys();
-                } else {
-                    Alert.alert('Erro', err.response.data.message, [
-                        {
-                            text: 'OK',
-                        },
-                    ]);
-                }
-
-            });
-        } catch (error) {
-            console.log(error)
-            setLoading(false);
-            Alert.alert('Erro', 'Erro ao tentar obter dados', [
-                {
-                    text: 'OK',
-                },
-            ]);
-        }
-    }
 
     function logOutSys() {
-        const keys = ['@BPF:token', '@BPF:user']
+        const keys = ['@BRR:token', '@BRR:user']
         AsyncStorage.multiRemove(keys);
         dispatch(logout('LOGGOUT'));
         dispatch(appLoaded(true));
@@ -170,173 +90,153 @@ const HomeScreen = ({ navigation, isFocused }) => {
     }, []);
 
 
+    // permisions location
+    async function hasLocationPermissionPlatform() {
+        const openSetting = () => {
+            Linking.openSettings().catch(() => {
+                Alert.alert('Unable to open settings');
+            });
+        };
+        const status = await Geolocation.requestAuthorization('whenInUse');
+
+        if (status === 'granted') {
+            return true;
+        }
+
+        if (status === 'denied') {
+            Alert.alert('Location permission denied');
+        }
+
+        if (status === 'disabled') {
+            Alert.alert(
+                `Turn on Location Services to allow "${appConfig.displayName
+                }" to determine your location.`,
+                '',
+                [
+                    { text: 'Go to Settings', onPress: openSetting },
+                    { text: "Don't Use Location", onPress: () => { } },
+                ],
+            );
+        }
+
+        return false;
+    };
+
+    async function hasLocationPermission() {
+        if (Platform.OS === 'ios') {
+            const hasPermission = await hasLocationPermissionPlatform();
+            return hasPermission;
+        }
+
+        if (Platform.OS === 'android' && Platform.Version < 23) {
+            return true;
+        }
+
+        const hasPermission = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+
+        if (hasPermission) {
+            return true;
+        }
+
+        const status = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        );
+
+        if (status === PermissionsAndroid.RESULTS.GRANTED) {
+            return true;
+        }
+
+        if (status === PermissionsAndroid.RESULTS.DENIED) {
+            setInterval(() => {
+                Alert.alert(
+                    'Ativar GPS',
+                    'Permissão de localização negada pelo usuário. Para Ativar segue este caminho: Configurações -> Location -> Permissões de Aplicativo.',
+                );
+            }, 30000);
+        } else if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+            // this.setState({ hasNeverAskAgain: true });
+            setInterval(() => {
+                Alert.alert(
+                    'Ativar GPS',
+                    'Permissão de localização revogada pelo usuário. Para Ativar segue este caminho: Configurações -> Location -> Permissões de Aplicativo.',
+                );
+            }, 30000);
+        }
+
+        return false;
+    };
+
+    async function getLocation() {
+        const hasLocationPermission_ = await hasLocationPermission();
+
+        if (!hasLocationPermission_) {
+            return;
+        }
+
+
+        Geolocation.getCurrentPosition(
+            async (position) => {
+                // await setRegion({
+                //     latitude: position.coords.latitude,
+                //     longitude: position.coords.longitude,
+                //     latitudeDelta: LATITUDE_DELTA,
+                //     longitudeDelta: LONGITUDE_DELTA,
+                // });
+                // await setRegionUser({
+                //     latitude: position.coords.latitude,
+                //     longitude: position.coords.longitude,
+                //     latitudeDelta: LATITUDE_DELTA,
+                //     longitudeDelta: LONGITUDE_DELTA,
+                // });
+                setIsMapReady(true);
+            },
+            error => {
+                Alert.alert(`Code ${error.code}`, error.message);
+            },
+            {
+                accuracy: {
+                    android: 'high',
+                    ios: 'best',
+                },
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 10000,
+                distanceFilter: 0,
+            },
+        );
+    };
+
 
 
     function onRefresh() {
         setIsRefreshing(true);
         init();
-
     }
 
     return (
         <Container>
             <Header>
-                <ContainerHeader>
-                    <ItemHeader>
-                        <TextHeader>
-                            Total
-                        </TextHeader>
-                        <ItemValueHeader>
-                            <TextValue>
-                                {
-                                    loadingValue ?
-                                        <ActivityIndicator color="#c2c2c2" size="small" />
-                                        :
-                                        seeMoney ?
-                                            convertMoney(estabelecimento.Saldo / 100) :
-                                            'R$ ----,--'
-                                }
-                            </TextValue>
-                            <ContainerIcon onPress={() => {
-                                setSeeMoney(!seeMoney)
-                            }}>
-                                <ViewIcon width={25} height={25} />
-                            </ContainerIcon>
-                        </ItemValueHeader>
-                    </ItemHeader>
-                    <ItemHeader>
-                        <ContainerIcon onPress={() => {
-                            navigation.navigate('Perfil');
-                        }}>
-                            <UserIcon width={25} height={25} />
-                        </ContainerIcon>
-                    </ItemHeader>
-                </ContainerHeader>
-                <ContainerButtonsHeader>
-                    <ButtonHeader onPress={() => {
-                        navigation.navigate('Retirada');
-                    }}>
-                        <TextButtonHeader>
-                            Saque
-                        </TextButtonHeader>
-                    </ButtonHeader>
-
-                    <ButtonHeader onPress={() => {
-                        navigation.navigate('Pagamento');
-                    }}>
-                        <TextButtonHeader>
-                            Novo Pagamento
-                        </TextButtonHeader>
-                    </ButtonHeader>
-                </ContainerButtonsHeader>
+                <ItemHeader></ItemHeader>
             </Header>
-            <Content>
-                <ContainerTabs>
-                    <TabsSelect>
-                        <Tabs onPress={() => {
-                            setTabSelected(1);
-                            getLasWeek();
-                        }}>
-                            <TextTab style={{ color: tabSelected == 1 ? colors.botao_acao : '#999', marginBottom: tabSelected == 1 ? 0 : 10 }}>Última Semana</TextTab>
-                            {
-                                tabSelected == 1 ?
-                                    <BorderSelected />
-                                    : null
-                            }
-                        </Tabs>
-                        <Tabs onPress={() => {
-                            setTabSelected(2);
-                            getLastMonth();
-                        }}>
-                            <TextTab style={{ color: tabSelected == 2 ? colors.botao_acao : '#999', marginBottom: tabSelected == 2 ? 0 : 10 }}>Mês Passado</TextTab>
-                            {
-                                tabSelected == 2 ?
-                                    <BorderSelected />
-                                    : null
-                            }
-                        </Tabs>
-                    </TabsSelect>
-                    <ContainerIcon onPress={() => {
-                        setModalData(true);
-                    }}>
-                        <CalendarIcon width={25} height={25} />
-                    </ContainerIcon>
-                </ContainerTabs>
-                <ContainerView>
-                    <TitleContainer>
-                        Transações
-                    </TitleContainer>
-                    <ContainerList>
-                        {
-                            loading ?
-                                <ActivityIndicator color="#c2c2c2" size="small" />
-                                :
-
-                                arrayTransacoes.length > 0 ?
-                                    <FlatList
-                                        data={arrayTransacoes}
-                                        refreshControl={
-                                            <RefreshControl
-                                                refreshing={isRefreshing}
-                                                onRefresh={onRefresh}
-                                            />
-                                        }
-                                        renderItem={({ item }) => {
-                                            return (
-                                                <RowList key={Math.floor(Math.random() * 100000000).toString()}>
-                                                    <ItemRow>
-                                                        <IconRow>
-                                                            {
-                                                                item.TipoOperacao == 'Saque' || item.TipoOperacao == 'Taxa de Saque' ?
-                                                                    <SaqueIcon width={35} height={35} /> :
-                                                                    <EntradaIcon width={35} height={35} />
-
-                                                            }
-                                                        </IconRow>
-                                                        <InfoRow>
-                                                            <NameTextRow>
-                                                                {
-                                                                    item.TipoOperacao == 'Taxa de Saque' ?
-                                                                        item.TipoOperacao :
-                                                                        item.Nome
-                                                                }
-                                                            </NameTextRow>
-                                                            <DateTextRow>{moment(item.DataHora).format("DD/MM/YYYY HH:mm:ss")}</DateTextRow>
-                                                        </InfoRow>
-                                                    </ItemRow>
-                                                    <ItemRow>
-                                                        <ValueRow>
-                                                            <ValueTextRow
-                                                                style={{ color: item.Valor.toString().includes("-") ? 'red' : '#25968d' }}
-                                                            >{convertMoney(item.Valor / 100)}</ValueTextRow>
-                                                        </ValueRow>
-                                                    </ItemRow>
-                                                </RowList>
-                                            );
-                                        }}
-                                        keyExtractor={item => Math.floor(Math.random() * 100000000).toString()}
-                                    /> :
-                                    <InfoRow>
-                                        <NameTextRow style={{ textAlign: 'center' }}>Nenhum registro encontrado</NameTextRow>
-                                    </InfoRow>
-                        }
-
-                    </ContainerList>
-                </ContainerView>
-                {
-                    modalData ?
-                        <ModalDataScreen
-                            visible={modalData}
-                            callback={(value) => {
-                                console.log(value);
-                                if (value != null && !value._dispatchInstances) {
-                                    getByDate(value);
-                                }
-                                setModalData(false);
-                            }} />
-                        : null
-                }
-            </Content>
+            <MapView>
+                <View style={{ flex: 1 }} >
+                    {
+                        isMapReady ?
+                            <MapMarkers
+                                markers={listServices}
+                                centerMap={region}
+                                goToLatLong={location}
+                                regionUser={regionUser}
+                            />
+                            :
+                            <View style={{ position: 'relative', top: 100 }}>
+                                <ActivityIndicator size="large" color="#11c1f3" />
+                            </View>
+                    }
+                </View>
+            </MapView>
         </Container>
     );
 };

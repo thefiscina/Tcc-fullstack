@@ -59,8 +59,8 @@ const LoginScreen = ({ navigation }) => {
 
             var response = await POST(`Login`, obj).then(async (response) => {
                 setLoading(false);
-                await AsyncStorage.setItem('@BPF:user', JSON.stringify(response.data));
-                await AsyncStorage.setItem('@BPF:token', response.data.Token);
+                await AsyncStorage.setItem('@BRR:user', JSON.stringify(response.data));
+                await AsyncStorage.setItem('@BRR:token', response.data.Token);
                 apiBase.defaults.headers.Authorization = `bearer ${response.data.Token}`;
                 dispatch(signInSuccess(response.data.Token, response.data));
                 getEstabelecimento();
@@ -96,7 +96,7 @@ const LoginScreen = ({ navigation }) => {
             var response = await GET(`Estabelecimento`);
             setLoading(false);
             if (response.status == 200) {
-                await AsyncStorage.setItem('@BPF:estabelecimento', JSON.stringify(response.data));
+                await AsyncStorage.setItem('@BRR:estabelecimento', JSON.stringify(response.data));
                 dispatch(setEstabelecimento(response.data));
                 dispatch(authenticaded(true));
                 console.log(response.data)

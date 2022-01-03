@@ -4,10 +4,15 @@ import { colors } from '../../styles';
 
 
 export const Container = styled.View`
-  flex: 1;
-  background: #fff;
+  /* flex: 1; */
+  /* background: #fff; */
 `;
 
+
+export const MapView = styled.View`
+height: 100%;
+/* background-color: azure; */
+`;
 
 export const Header = styled.View`  
   margin-left: 20px;

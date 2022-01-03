@@ -53,9 +53,9 @@ class AppRoot extends Component {
 const mapDispatchToProps = (dispatch, ownProps) => {
   return {
     async checkLogin() {
-      const isLoggin = await AsyncStorage.getItem('@BPF:token').catch(e => console.log(e));
+      const isLoggin = await AsyncStorage.getItem('@BRR:token').catch(e => console.log(e));
       if (isLoggin) {
-        var user = await AsyncStorage.getItem('@BPF:user');
+        var user = await AsyncStorage.getItem('@BRR:user');
         apiBase.defaults.headers.Authorization = `bearer ${isLoggin}`;
         dispatch(signInSuccess(isLoggin, JSON.parse(user)))
         dispatch(authenticaded(true));
